@@ -14,3 +14,7 @@ single_growth_room_plot.py: Plots data from a single growth chamber.
 
 # Light Spectral Quality
 Plots and calculates lighting ratios from spectral data measured by PS-300 apogee spectroradiometer
+
+light_curve_plotting_script.py: takes in data from an excel and automatically calculates ratios and plots normalized spectra
+
+![all](light_curve_plotting/sample_spectrum.png)
