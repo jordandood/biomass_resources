@@ -3,7 +3,14 @@ Several scripts that may prove helpful for processing data
 # HCS_Plotting
 Contains scripts for plotting environmental data exported from the HCS-1 and HCS-3 models utilized in the pilot plant growth chambers. Plots temperature (degC), humidity (RH), and CO2 (ppm).
 
-The first script is for plotting data from all three growth rooms all at once
+growth_room_plotting.py: Plots data from all three growth chambers at once on the same graph.
 
-The second one is for plotting data from just one room.
+![all](./all_growth_rooms.png)
 
+single_growth_room_plot.py: Plots data from a single growth chamber.
+
+![single](./single_growth_room.png)
+
+
+# Light Spectral Quality
+Plots and calculates lighting ratios from spectral data measured by PS-300 apogee spectroradiometer
