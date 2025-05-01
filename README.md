@@ -5,11 +5,11 @@ Contains scripts for plotting environmental data exported from the HCS-1 and HCS
 
 growth_room_plotting.py: Plots data from all three growth chambers at once on the same graph.
 
-![all](./all_growth_rooms.png)
+![all](HCS_Plotting/all_growth_rooms.png)
 
 single_growth_room_plot.py: Plots data from a single growth chamber.
 
-![single](./single_growth_room.png)
+![single](HCS_Plotting/single_growth_room.png)
 
 
 # Light Spectral Quality
