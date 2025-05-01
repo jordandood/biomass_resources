@@ -1,23 +1,17 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Feb 29 13:44:04 2024
-
-@author: sango
-"""
-
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from tabulate import tabulate
 from datetime import datetime
 
 ##############################################################
-#Specify file path of csv file
-base_path = r'C:\Users\sango\Documents\McGill\Experimental Work\Data Collection\T5\Environment_Trace_T5'
+#Specify folder containing csv file(s)
+folder_path = r'C:\Users\sango\Github\biomass_resources\HCS_Plotting'
 
 #Date and time that you started your trial
-reference_date = pd.Timestamp('2025-01-14 00:00:00')
+reference_date = pd.Timestamp('2024-11-15 04:00:00')
 ##############################################################
-
 
 #moving average filter
 window_size = 15
@@ -35,119 +29,215 @@ def moving_average(data):
         
     return filter_data
 
+#process all csv files in the folder
+csv_files = [f for f in os.listdir(folder_path) if f.endswith('.csv')]
+data_frames = {}
+processed_data = {}
 
-#define file paths
-data_70_path = os.path.join(base_path, f'70_{trial}.csv')
-data_80_path = os.path.join(base_path, f'80_{trial}.csv')
-data_90_path = os.path.join(base_path, f'90_{trial}.csv')
-
-#80 and 90 data processing
-#The HCS-1 controller (80 and 90) exports data differently than the HCS-3 (70), 
-#Needs a starting reference date
-cols = ['Day','H:M','Temp(C)','Humid(%rH)','CO2(PPM)']
-data_80 = pd.read_csv(data_80_path,skiprows=4, usecols = cols, on_bad_lines='warn')
-data_90 = pd.read_csv(data_90_path,skiprows=4, usecols = cols, on_bad_lines='warn')
-
-# Ensure 'H:M' is a string and concatenate ':00' to it
-data_80['H:M'] = data_80['H:M'].astype(str) + ':00'
-data_90['H:M'] = data_90['H:M'].astype(str) + ':00'
-
-# Combine the 'Day' and 'H:M' columns into a single datetime column for 80 and 90 rooms
-data_80['Datetime_80'] = reference_date + pd.to_timedelta(data_80['Day'].astype(int) - 1, unit='D') + pd.to_timedelta(data_80['H:M'])
-data_90['Datetime_90'] = reference_date + pd.to_timedelta(data_90['Day'].astype(int) - 1, unit='D') + pd.to_timedelta(data_90['H:M'])
-
-time_80 = data_80['Datetime_80']
-time_80 = pd.to_datetime(time_80, format='%m/%d/%Y %H:%M')    
-time_90 = data_90['Datetime_90']
-time_90 = pd.to_datetime(time_90, format='%m/%d/%Y %H:%M')    
-
-#debugging in case some rows are not numeric or N/A
-print(data_80.dtypes)
-#invalid_rows = data_80[pd.to_numeric(data_90['Temp(C)'], errors='coerce').isna()]
-data_80['Temp(C)'] = pd.to_numeric(data_80['Temp(C)'], errors='coerce')
-
-#print(data_90.dtypes)
-#invalid_rows = data_90[pd.to_numeric(data_90['CO2(PPM)'], errors='coerce').isna()]
-#print(invalid_rows)
-
-temp_80 = moving_average(data_80['Temp(C)'])
-humidity_80 = moving_average(data_80['Humid(%rH)'])
-CO2_80 = moving_average(data_80['CO2(PPM)'])
-
-temp_90 = moving_average(data_90['Temp(C)'])
-humidity_90 = moving_average(data_90['Humid(%rH)'])
-CO2_90 = moving_average(data_90['CO2(PPM)'])
-
-#70 room data processing
-data_70 = pd.read_csv(data_70_path)
-time_70_raw = data_70['Time']
-time_70 = pd.to_datetime(time_70_raw)
-
-temperature_70_raw = data_70['Temp(F)']
-humidity_70_raw = data_70['Humid(%)']
-CO2_70_raw = data_70['CO2(PPM)']
-
-temp_70 = []
-humidity_70 = []
-CO2_70 = []
-
-for item in temperature_70_raw:
-    numbers = item.split()
-    values = [float(num.split(':')[1]) for num in numbers]
-    values = [value / 10 for value in values]
-    values = [(value - 32) * 5 / 9 for value in values]
-    average_value = sum(values) / len(values)
-    average_value = round(average_value, 2)
-    temp_70.append(average_value)
+for csv_file in csv_files:
+    file_path = os.path.join(folder_path, csv_file)
     
-for item in humidity_70_raw:
-    numbers = item.split()
-    values = [float(num.split(':')[1]) for num in numbers]
-    values = [value / 10 for value in values]
-    average_value = sum(values) / len(values)
-    average_value = round(average_value, 2)
-    humidity_70.append(average_value)
+    # Determine file type based on HCS_1 or HCS_3 in the filename
+    if "HCS_3" in csv_file:
+        # HCS-3 format
+        try:
+            df = pd.read_csv(file_path)
+            data_frames[csv_file] = {
+                'data': df,
+                'type': 'HCS_3',
+            }
+            print(f"Loaded HCS-3 format file: {csv_file}")
+        except Exception as e:
+            print(f"Error reading {csv_file}: {e}")
+    elif "HCS_1" in csv_file:
+        # HCS-1 format
+        cols = ['Day','H:M','Temp(C)','Humid(%rH)','CO2(PPM)']
+        try:
+            df = pd.read_csv(file_path, skiprows=4, usecols=cols, on_bad_lines='warn')
+            data_frames[csv_file] = {
+                'data': df,
+                'type': 'HCS_1',
+            }
+            print(f"Loaded HCS-1 format file: {csv_file}")
+        except Exception as e:
+            print(f"Error reading {csv_file}: {e}")
+
+#run through dictionary and process data in each file for plotting
+for file_name, file_info in data_frames.items():
+    df = file_info['data']
+    file_type = file_info['type']
     
-for item in CO2_70_raw:
-    numbers = item.split()
-    values = [float(num.split(':')[1]) for num in numbers]
-    average_value = sum(values) / len(values)
-    average_value = round(average_value, 2)
-    CO2_70.append(average_value)
+    try:
+        if file_type == 'HCS_1':
+            # HCS-1 processing logic
+            df['H:M'] = df['H:M'].astype(str) + ':00'
+            
+            df['Datetime'] = reference_date + pd.to_timedelta(df['Day'].astype(int) - 1, unit='D') + pd.to_timedelta(df['H:M'])
+            
+            # Convert data to numeric values
+            df['Temp(C)'] = pd.to_numeric(df['Temp(C)'], errors='coerce')
+            df['Humid(%rH)'] = pd.to_numeric(df['Humid(%rH)'], errors='coerce')
+            df['CO2(PPM)'] = pd.to_numeric(df['CO2(PPM)'], errors='coerce')
+            
+            # Drop rows with any non-numeric values (NaN) after conversion
+            original_count = len(df)
+            df = df.dropna(subset=['Temp(C)', 'Humid(%rH)', 'CO2(PPM)'])
+            dropped_count = original_count - len(df)
+            
+            if dropped_count > 0:
+                print(f"Warning: Dropped {dropped_count} rows containing non-numeric values in {file_name}")
+            
+            # Apply moving average filter and store processed data
+            processed_data[file_name] = {
+                'time': df['Datetime'],
+                'temp': moving_average(df['Temp(C)']),
+                'humidity': moving_average(df['Humid(%rH)']),
+                'co2': moving_average(df['CO2(PPM)']),
+                'type': file_type,
+                'raw_data': df
+            }
+            
+        elif file_type == 'HCS_3':
+            # HCS-3 processing logic
+            time_raw = df['Time']
+            time = pd.to_datetime(time_raw)
+            temperature_raw = df['Temp(F)']
+            humidity_raw = df['Humid(%)']
+            CO2_raw = df['CO2(PPM)']
+            
+            temp = []
+            humidity = []
+            CO2 = []
+            error_count = 0
+            
+            # Process temperature
+            for item in temperature_raw:
+                try:
+                    numbers = item.split()
+                    values = [float(num.split(':')[1]) for num in numbers]
+                    values = [value / 10 for value in values]
+                    values = [(value - 32) * 5 / 9 for value in values]  # Convert F to C
+                    average_value = sum(values) / len(values)
+                    average_value = round(average_value, 2)
+                    temp.append(average_value)
+                except (ValueError, IndexError, ZeroDivisionError):
+                    error_count += 1
+                    temp.append(None)
+            
+            # Process humidity
+            for item in humidity_raw:
+                try:
+                    numbers = item.split()
+                    values = [float(num.split(':')[1]) for num in numbers]
+                    values = [value / 10 for value in values]
+                    average_value = sum(values) / len(values)
+                    average_value = round(average_value, 2)
+                    humidity.append(average_value)
+                except (ValueError, IndexError, ZeroDivisionError):
+                    error_count += 1
+                    humidity.append(None)
+            
+            # Process CO2
+            for item in CO2_raw:
+                try:
+                    numbers = item.split()
+                    values = [float(num.split(':')[1]) for num in numbers]
+                    average_value = sum(values) / len(values)
+                    average_value = round(average_value, 2)
+                    CO2.append(average_value)
+                except (ValueError, IndexError, ZeroDivisionError):
+                    error_count += 1
+                    CO2.append(None)
+            
+            # Create a DataFrame with the processed data
+            processed_df = pd.DataFrame({
+                'Time': time,
+                'Temperature': temp,
+                'Humidity': humidity,
+                'CO2': CO2
+            })
+            
+            # Drop rows with any missing values
+            original_count = len(processed_df)
+            processed_df = processed_df.dropna()
+            dropped_count = original_count - len(processed_df)
+            
+            if dropped_count > 0:
+                print(f"Warning: Dropped {dropped_count} rows containing errors during processing in {file_name}")
+            
+            # Store the processed data
+            processed_data[file_name] = {
+                'time': processed_df['Time'],
+                'temp': moving_average(processed_df['Temperature'].tolist()),
+                'humidity': moving_average(processed_df['Humidity'].tolist()),
+                'co2': moving_average(processed_df['CO2'].tolist()),
+                'type': file_type,
+                'raw_data': processed_df
+            }
+    
+    except Exception as e:
+        print(f"Error processing {file_name}: {e}")
+
+# Print summary of processed files
+print(f"\nSuccessfully processed {len(processed_data)} files:")
+for file_name in processed_data.keys():
+    print(f"  - {file_name}")
 
 
-days_70 = list(range(1, 30))
-days_80 = list(range(1, 30))
-days_90 = list(range(1, 30))
-
-
-#plotting 
-plt.plot(time_70, moving_average(humidity_70))
-plt.plot(time_80, humidity_80)
-plt.plot(time_90, humidity_90)
+#plot all data together
+plt.figure(figsize=(12, 6))
+for file_name, data in processed_data.items():
+    plt.plot(data['time'], data['temp'], label=file_name)
 plt.xlabel('Time')
-plt.ylabel('Humidity (RH)')
-plt.title(f'Humidity vs Time - {trial}')
-plt.legend(['70', '80', '90'])
+plt.ylabel('Temperature (°C)')
+plt.title('Temperature vs Time - All Growth Rooms')
+plt.legend(loc='best', fontsize='small')
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
 plt.xticks([])
 plt.show()
 
-plt.plot(time_70, moving_average(temp_70))
-plt.plot(time_80, temp_80)
-plt.plot(time_90, temp_90)
+plt.figure(figsize=(12, 6))
+for file_name, data in processed_data.items():
+    plt.plot(data['time'], data['humidity'], label=file_name)
 plt.xlabel('Time')
-plt.ylabel('Temperature (degC)')
-plt.title(f'Temperature vs Time - {trial}')
-plt.legend(['70', '80', '90'])
+plt.ylabel('Humidity (%RH)')
+plt.title('Humidity vs Time - All Growth Rooms')
+plt.legend(loc='best', fontsize='small')
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
 plt.xticks([])
 plt.show()
 
-plt.plot(time_70, moving_average(CO2_70))
-plt.plot(time_80, CO2_80)
-plt.plot(time_90, CO2_90)
+plt.figure(figsize=(12, 6))
+for file_name, data in processed_data.items():
+    plt.plot(data['time'], data['co2'], label=file_name)
 plt.xlabel('Time')
-plt.ylabel('CO2 (ppm)')
-plt.title(f'CO2 vs Time - {trial}')
-plt.legend(['70', '80', '90'])
+plt.ylabel('CO₂ (ppm)')
+plt.title('CO₂ vs Time - All Growth Rooms')
+plt.legend(loc='best', fontsize='small')
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.tight_layout()
 plt.xticks([])
 plt.show()
+
+# Generate summary statistics for all files
+print("\nEnvironmental Conditions Summary:")
+stats_table = [["File", "Parameter", "Mean", "Standard Deviation"]]
+
+for file_name, data in processed_data.items():
+    # Calculate statistics for each parameter
+    temp_mean = np.mean(data['temp'])
+    temp_std = np.std(data['temp'])
+    humidity_mean = np.mean(data['humidity'])
+    humidity_std = np.std(data['humidity'])
+    co2_mean = np.mean(data['co2'])
+    co2_std = np.std(data['co2'])
+    
+    # Add to the table
+    stats_table.append([file_name, "Temperature (°C)", f"{temp_mean:.2f}", f"{temp_std:.2f}"])
+    stats_table.append([file_name, "Humidity (%RH)", f"{humidity_mean:.2f}", f"{humidity_std:.2f}"])
+    stats_table.append([file_name, "CO₂ (ppm)", f"{co2_mean:.2f}", f"{co2_std:.2f}"])
+
+# Print the table
+print(tabulate(stats_table, headers="firstrow", tablefmt="grid"))

@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 17 10:34:43 2024
-
-@author: sango
-"""
-
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -76,7 +69,6 @@ else:
     temp = []
     humidity = []
     CO2 = []
-    
     error_count = 0
 
     for item in temperature_raw:
@@ -143,6 +135,7 @@ plt.plot(time, moving_average(humidity))
 plt.xlabel('Time')
 plt.ylabel('Humidity (RH)')
 plt.title('Humidity vs Time')
+plt.grid(True, linestyle='--', alpha=0.7)
 plt.xticks([])
 plt.show()
 
@@ -150,6 +143,7 @@ plt.plot(time, moving_average(CO2))
 plt.xlabel('Time')
 plt.ylabel('CO₂ (ppm)')
 plt.title('CO₂ vs Time')
+plt.grid(True, linestyle='--', alpha=0.7)
 plt.xticks([])
 plt.show()
 
@@ -157,6 +151,7 @@ plt.plot(time, moving_average(temp))
 plt.xlabel('Time')
 plt.ylabel('Temperature (°C)')
 plt.title('Temperature vs Time')
+plt.grid(True, linestyle='--', alpha=0.7)
 plt.xticks([])
 plt.show()
 
