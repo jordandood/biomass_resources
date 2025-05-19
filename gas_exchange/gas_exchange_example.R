@@ -7,7 +7,11 @@ library(dplyr)
 #Designed for excel sheets directly exported from LI-6800
 #excel sheet need to be saved as values only, as read_excel will evaluate formulas as zero
 
-#setwd("C:\\Users\\sango\\Documents\\McGill\biomass_resources\\gas_exchange")
+#Documentation:
+#https://www.rdocumentation.org/packages/plantecophys/versions/1.4-6/topics/fitaci
+#https://remkoduursma.github.io/plantecophys//index.html
+
+setwd("C:/Users/sango/Documents/McGill/biomass_resources/gas_exchange")
 sample <- as.data.frame(read_excel("gas_exchange_sample_dataset.xlsx", skip = 16))
 sample <- sample[-1, ]
 
@@ -20,11 +24,9 @@ clean_data <- function(df) {
   colnames(df)[colnames(df) == "A"] <- "ALEAF"  # Net Photosynthesis (Pn)
   colnames(df)[colnames(df) == "elapsed"] <- "Time"
 
-  # Ensure Time is in minutes or assign a placeholder if missing
+  # Ensure Time is in minutes
   if ("Time" %in% colnames(df)) {
-    df$Time <- as.numeric(df$Time) / 60  # Convert from seconds to minutes
-  } else {
-    df$Time <- seq_len(nrow(df))  # Assign row numbers as Time if missing
+    df$Time <- as.numeric(df$Time) / 60  
   }
   
   if ("ALEAF" %in% colnames(df)) {
@@ -52,7 +54,7 @@ clean_data <- function(df) {
   return(df_clean)
 }
 
-#function to plot a variable against time
+#plotting function
 plot_variable <- function(df, x_var, y_var, plot_title, y_label, x_label = NULL) {
   if (is.null(x_label)) x_label <- x_var
   plot <- ggplot(df, aes(x = .data[[x_var]], y = .data[[y_var]])) +
@@ -82,8 +84,8 @@ plot_variable(cleaned_sample,"Ci","ALEAF", "ALEAF vs Ci", "ALEAF (umol m-2 s-1)"
 
 
 #fit will fail if data is low quality; refer to documentation for further adjustment
-#of parameters: https://www.rdocumentation.org/packages/plantecophys/versions/1.4-6/topics/fitaci
-fit <- fitaci(fitaci_data, fitmethod = 'bilinear')
+#of fitting parameters
+#fit <- fitaci(fitaci_data, fitmethod = 'bilinear')
 
 
 
