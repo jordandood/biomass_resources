@@ -18,3 +18,9 @@ Plots and calculates lighting ratios from spectral data measured by PS-300 apoge
 light_curve_plotting_script.py: takes in data from an excel and automatically calculates ratios and plots normalized spectra
 
 ![all](light_curve_plotting/sample_spectrum.png)
+
+
+# Gas Exchange
+Basic framework and resources for gas exchange analysis using the Farquhar-von Caemmerer-Berry model of photosynthesis. Analyzes a single raw gas exchange file from the LI-6800, but the functions and steps can be easily adapted to suit your particular needs. Note that low quality data will fail to fit, so refer to documentation for more specific adjustments as needed.
+
+https://remkoduursma.github.io/plantecophys/
